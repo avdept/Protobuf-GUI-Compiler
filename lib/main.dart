@@ -87,6 +87,13 @@ class _RootPageState extends State<RootPage> {
             }));
   }
 
+  void _openPluginPathSelector(ProtoCompilerOption item) {
+    showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: false)
+        .then((value) => setState(() {
+              item.path = value.paths.first;
+            }));
+  }
+
   void _openIncludePathSelector() {
     showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: true)
         .then((value) => setState(() {
@@ -382,7 +389,7 @@ class _RootPageState extends State<RootPage> {
                             item.needsPlugin
                                 ? MaterialButton(
                                     color: Color(0xFF508CA4),
-                                    onPressed: _openOutputPathSelector,
+                                    onPressed: () => { this._openPluginPathSelector(item)},
                                     child: Text("Select plugin path",
                                         style: TextStyle(
                                             color: Color(0xFFFCF7FF))),
