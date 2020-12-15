@@ -2,7 +2,8 @@
 
 A GUI app for protoc command line tool. It eases a process of compiling `proto` files into selected language. Currently supports following: Dart, Go, C++
 
-![Screenshot 2020-12-14 at 19 01 15](https://user-images.githubusercontent.com/1757017/102111328-eb35d400-3e3e-11eb-97cd-9abb6a2f5cc6.png)
+![app.png](https://user-images.githubusercontent.com/1757017/102215894-08bc7980-3ee3-11eb-8807-d4659fd11aa6.png)
+
 
 
 
