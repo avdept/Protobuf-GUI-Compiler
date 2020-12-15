@@ -2,11 +2,7 @@ import 'dart:io';
 import 'package:process_run/cmd_run.dart';
 import 'package:process_run/shell.dart';
 
-Map<String, String> compilerTypes = {
-  "C++": "--cpp_out",
-  "Go": '--go_out',
-  "Java": '--java_out'
-};
+Map<String, String> compilerTypes = {"C++": "--cpp_out", "Go": '--go_out', "Java": '--java_out'};
 
 class ShellService {
   ShellService(this.type, this.protocPath, this.outputPath, this.includesPath, this.protos, this.pluginPath);
@@ -24,8 +20,16 @@ class ShellService {
   Future<ProcessResult> compileProtos() async {
     bool runInShell = Platform.isWindows;
 
+    List<String> opts = [];
+    opts.add("${compilerTypes[this.type]}=${this.outputPath}");
+    if (this.includesPath != null) {
+      opts.add("--proto_path=${this.includesPath}");
+    }
+
+    opts.add(this.protos.join(' '));
     // Run the command
-    ProcessCmd cmd = processCmd(this.protocPath, ["${compilerTypes[this.type]}=${this.outputPath}", "--proto_path=${this.includesPath}", this.protos.join(" ")], runInShell: runInShell);
+    ProcessCmd cmd = processCmd(this.protocPath, opts,
+        runInShell: runInShell);
     print(cmd);
     return await runCmd(cmd);
   }

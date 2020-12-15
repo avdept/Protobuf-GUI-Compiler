@@ -58,9 +58,7 @@ class _RootPageState extends State<RootPage> {
   List<String> _protosList = [];
 
   void _openBinFileSelector() {
-    showOpenPanel(allowsMultipleSelection: false, allowedFileTypes: [
-      FileTypeFilterGroup(fileExtensions: ["proto"])
-    ]).then((value) => setState(() {
+    showOpenPanel(allowsMultipleSelection: false).then((value) => setState(() {
           _protoBinPath = value.paths.first;
         }));
   }
@@ -95,7 +93,6 @@ class _RootPageState extends State<RootPage> {
 
   Widget successDialog(BuildContext context, Map<String, ProcessResult> results) {
     List<Widget> resultRows = [];
-    print(results['Go'].stderr);
     results.keys.forEach((String element) {
       String desc = results[element].exitCode == 0 ? 'Compiled succesfully' : results[element].stderr.toString().replaceAll(RegExp('null:'), '');
       resultRows.add(Row(
