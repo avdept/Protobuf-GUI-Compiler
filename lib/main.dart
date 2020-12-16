@@ -81,7 +81,7 @@ class _RootPageState extends State<RootPage> {
   }
 
   void _openOutputPathSelector() {
-    showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: false)
+    showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: true)
         .then((value) => setState(() {
               _outputPath = value.paths.first;
             }));
@@ -389,7 +389,8 @@ class _RootPageState extends State<RootPage> {
                             item.needsPlugin
                                 ? MaterialButton(
                                     color: Color(0xFF508CA4),
-                                    onPressed: () => { this._openPluginPathSelector(item)},
+                                    onPressed: () =>
+                                        {this._openPluginPathSelector(item)},
                                     child: Text("Select plugin path",
                                         style: TextStyle(
                                             color: Color(0xFFFCF7FF))),
