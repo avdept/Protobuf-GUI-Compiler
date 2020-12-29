@@ -178,7 +178,7 @@ class _RootPageState extends State<RootPage> {
   }
 
   String pluginPathText(ProtoCompilerOption item) {
-    return item.path == null ? "Plugin Path not selected" : "Path selected at ${item.path}";
+    return item.protocPath == null ? "Plugin Path not selected" : "Path selected at ${item.protocPath}";
   }
 
   Widget _buildBinarySection() {
