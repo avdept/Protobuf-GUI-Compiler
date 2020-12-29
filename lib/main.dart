@@ -6,24 +6,24 @@ import 'package:process_run/which.dart';
 import 'package:protobuf_compiler/models/proto_compiler_option.dart';
 import 'package:protobuf_compiler/shell_service.dart';
 import 'package:window_size/window_size.dart';
+import 'constants.dart';
 
 void main() {
-  var availableOptions = {
-    "Go": "protoc-gen-go",
-    "C++": "grpc_cpp_plugin",
-    "Dart": "protoc-gen-dart"
-  };
-  List<ProtoCompilerOption> items = [];
-  availableOptions.forEach((name, defaultPath) => items.add(ProtoCompilerOption(
-      name, null, defaultPath, false,
-      needsPlugin: defaultPath != '')));
+  var availableOptions = {"Go": "protoc-gen-go", "C++": "grpc_cpp_plugin", "Dart": "protoc-gen-dart"};
+  // availableOptions.forEach((name, defaultPath) => items.add(ProtoCompilerOption(name, null, defaultPath, false, needsPlugin: defaultPath != '')));
   WidgetsFlutterBinding.ensureInitialized();
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     setWindowTitle("Protobuf compiler");
     setWindowMinSize(Size(1280, 800));
     setWindowMaxSize(Size(1280, 800));
   }
-  runApp(ProtobufCompilerApp(items: items));
+  runApp(ProtobufCompilerApp(items: buildCompileOptions()));
+}
+
+List<ProtoCompilerOption> buildCompileOptions() {
+  final cpp = ProtoCompilerOption(CPP, null, null, null, 'grpc_cpp_plugin', false, needsProtoPlugin: false, needsGrpcPlugin: true);
+
+  return [cpp];
 }
 
 class ProtobufCompilerApp extends StatelessWidget {
@@ -70,10 +70,7 @@ class _RootPageState extends State<RootPage> {
   }
 
   bool _compileEnabled() {
-    return this._protoBinPath != null &&
-        this._outputPath != null &&
-        this._protosList != null &&
-        _anyOptionSelected();
+    return this._protoBinPath != null && this._outputPath != null && this._protosList != null && _anyOptionSelected();
   }
 
   bool _anyOptionSelected() {
@@ -81,66 +78,49 @@ class _RootPageState extends State<RootPage> {
   }
 
   void _openOutputPathSelector() {
-    showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: true)
-        .then((value) => setState(() {
-              _outputPath = value.paths.first;
-            }));
+    showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: true).then((value) => setState(() {
+          _outputPath = value.paths.first;
+        }));
   }
 
   void _openPluginPathSelector(ProtoCompilerOption item) {
-    showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: false)
-        .then((value) => setState(() {
-              item.path = value.paths.first;
-            }));
+    showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: false).then((value) => setState(() {
+          item.protocPath = value.paths.first;
+        }));
   }
 
   void _openIncludePathSelector() {
-    showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: true)
-        .then((value) => setState(() {
-              _includePath = value.paths.first;
-            }));
+    showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: true).then((value) => setState(() {
+          _includePath = value.paths.first;
+        }));
   }
 
   void _openProtosSelector() {
-    showOpenPanel(
-        allowsMultipleSelection: true,
-        canSelectDirectories: false,
-        allowedFileTypes: [
-          FileTypeFilterGroup(fileExtensions: ["proto"])
-        ]).then((value) => setState(() {
+    showOpenPanel(allowsMultipleSelection: true, canSelectDirectories: false, allowedFileTypes: [
+      FileTypeFilterGroup(fileExtensions: ["proto"])
+    ]).then((value) => setState(() {
           _protosList = value.paths.map((name) => name).toList();
         }));
   }
 
-  Widget successDialog(
-      BuildContext context, Map<String, ProcessResult> results) {
+  Widget successDialog(BuildContext context, Map<String, ProcessResult> results) {
     List<Widget> resultRows = [];
     results.keys.forEach((String element) {
-      String desc = results[element].exitCode == 0
-          ? 'Compiled succesfully'
-          : results[element].stderr.toString().replaceAll(RegExp('null:'), '');
+      String desc = results[element].exitCode == 0 ? 'Compiled succesfully' : results[element].stderr.toString().replaceAll(RegExp('null:'), '');
       resultRows.add(Row(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.max,
-          children: [
-            Expanded(
-                child: Text('$element: $desc', overflow: TextOverflow.visible))
-          ]));
+          children: [Expanded(child: Text('$element: $desc', overflow: TextOverflow.visible))]));
     });
     return AlertDialog(
       title: Text("Compilation result"),
       content: Container(
-        child: Column(
-            children: resultRows,
-            mainAxisAlignment: MainAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min),
+        child: Column(children: resultRows, mainAxisAlignment: MainAxisAlignment.start, mainAxisSize: MainAxisSize.min),
         key: UniqueKey(),
         width: 600,
       ),
       actions: [
-        MaterialButton(
-            child: Text("Close"),
-            onPressed: () => {Navigator.of(context).pop()})
+        MaterialButton(child: Text("Close"), onPressed: () => {Navigator.of(context).pop()})
       ],
     );
   }
@@ -153,15 +133,23 @@ class _RootPageState extends State<RootPage> {
         });
   }
 
+  void _compileGrpcs(BuildContext context) {
+    Map<String, ProcessResult> compileResult = {};
+    this._selectedOutputList.forEach((lang) {
+      ShellService(lang, this._protoBinPath, this._outputPath, this._includePath, this._protosList, null).compileGrpcs().then((ProcessResult result) => {
+            compileResult[lang] = result,
+            if (this._selectedOutputList.last == lang) {this._showResult(context, compileResult)}
+          });
+    });
+  }
+
   void _compile(BuildContext context) {
     Map<String, ProcessResult> compileResult = {};
     this._selectedOutputList.forEach((lang) {
-      var service = ShellService(lang, this._protoBinPath, this._outputPath,
-          this._includePath, this._protosList, null);
+      var service = ShellService(lang, this._protoBinPath, this._outputPath, this._includePath, this._protosList, null);
       service.compileProtos().then((ProcessResult result) => {
             compileResult[lang] = result,
-            if (this._selectedOutputList.last == lang)
-              {this._showResult(context, compileResult)}
+            if (this._selectedOutputList.last == lang) {this._showResult(context, compileResult)}
           });
     });
   }
@@ -169,37 +157,28 @@ class _RootPageState extends State<RootPage> {
   String binDescriptionText() {
     if (Platform.isMacOS || Platform.isLinux) {
       String protocPath = whichSync('protoc');
+      print(protocPath);
       if (protocPath != null) {
         this._protoBinPath = protocPath;
       }
     }
-    return this._protoBinPath == null
-        ? "Select protoc file executable"
-        : "Binary selected at ${this._protoBinPath}";
+    return this._protoBinPath == null ? "Select protoc file executable" : "Binary selected at ${this._protoBinPath}";
   }
 
   String outputPathDescriptionText() {
-    return this._outputPath == null
-        ? "Path not selected"
-        : "Path selected at ${this._outputPath}";
+    return this._outputPath == null ? "Path not selected" : "Path selected at ${this._outputPath}";
   }
 
   String protosPathDescriptionText() {
-    return this._protosList == null
-        ? "Files not selected"
-        : "Selected files: ${this._protosList.join(", ")}";
+    return this._protosList == null ? "Files not selected" : "Selected files: ${this._protosList.join(", ")}";
   }
 
   String includePathText() {
-    return this._includePath == null
-        ? "Path not selected"
-        : "Path selected at ${this._includePath}";
+    return this._includePath == null ? "Path not selected" : "Path selected at ${this._includePath}";
   }
 
   String pluginPathText(ProtoCompilerOption item) {
-    return item.path == null
-        ? "Plugin Path not selected"
-        : "Path selected at ${item.path}";
+    return item.path == null ? "Plugin Path not selected" : "Path selected at ${item.path}";
   }
 
   Widget _buildBinarySection() {
@@ -211,8 +190,7 @@ class _RootPageState extends State<RootPage> {
             MaterialButton(
               color: Color(0xFF508CA4),
               onPressed: _openBinFileSelector,
-              child: Text("Select protoc executable file",
-                  style: TextStyle(color: Color(0xFFFCF7FF))),
+              child: Text("Select protoc executable file", style: TextStyle(color: Color(0xFFFCF7FF))),
             )
           ]),
           Container(
@@ -220,11 +198,7 @@ class _RootPageState extends State<RootPage> {
             child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.max,
-                children: [
-                  Text(this.binDescriptionText(),
-                      key: UniqueKey(),
-                      style: TextStyle(color: Color(0xFFC7C7C7), fontSize: 12))
-                ]),
+                children: [Text(this.binDescriptionText(), key: UniqueKey(), style: TextStyle(color: Color(0xFFC7C7C7), fontSize: 12))]),
           )
         ],
       ),
@@ -246,8 +220,7 @@ class _RootPageState extends State<RootPage> {
             MaterialButton(
               color: Color(0xFF508CA4),
               onPressed: _openOutputPathSelector,
-              child: Text("Select output folder",
-                  style: TextStyle(color: Color(0xFFFCF7FF))),
+              child: Text("Select output folder", style: TextStyle(color: Color(0xFFFCF7FF))),
             )
           ]),
           Container(
@@ -255,12 +228,7 @@ class _RootPageState extends State<RootPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisSize: MainAxisSize.max,
-                  children: [
-                    Text(this.outputPathDescriptionText(),
-                        key: UniqueKey(),
-                        style:
-                            TextStyle(color: Color(0xFFC7C7C7), fontSize: 12))
-                  ]),
+                  children: [Text(this.outputPathDescriptionText(), key: UniqueKey(), style: TextStyle(color: Color(0xFFC7C7C7), fontSize: 12))]),
               padding: EdgeInsets.only(top: 5.0))
         ],
       ),
@@ -283,23 +251,18 @@ class _RootPageState extends State<RootPage> {
               MaterialButton(
                 color: Color(0xFF508CA4),
                 onPressed: _openProtosSelector,
-                child: Text("Select proto files to compile",
-                    style: TextStyle(color: Color(0xFFFCF7FF))),
+                child: Text("Select proto files to compile", style: TextStyle(color: Color(0xFFFCF7FF))),
               )
             ]),
             Container(
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      Expanded(
-                          child: Text(this.protosPathDescriptionText(),
-                              key: UniqueKey(),
-                              style: TextStyle(
-                                  color: Color(0xFFC7C7C7), fontSize: 12),
-                              textAlign: TextAlign.center,
-                              overflow: TextOverflow.visible))
-                    ]),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.max, children: [
+                  Expanded(
+                      child: Text(this.protosPathDescriptionText(),
+                          key: UniqueKey(),
+                          style: TextStyle(color: Color(0xFFC7C7C7), fontSize: 12),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.visible))
+                ]),
                 padding: EdgeInsets.only(top: 5))
           ],
         ),
@@ -320,22 +283,15 @@ class _RootPageState extends State<RootPage> {
             MaterialButton(
               color: Color(0xFF508CA4),
               onPressed: _openIncludePathSelector,
-              child: Text("Select include folder",
-                  style: TextStyle(color: Color(0xFFFCF7FF))),
+              child: Text("Select include folder", style: TextStyle(color: Color(0xFFFCF7FF))),
             )
           ]),
           Container(
-              child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    Expanded(
-                        child: Text(this.includePathText(),
-                            key: UniqueKey(),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                color: Color(0xFFC7C7C7), fontSize: 12)))
-                  ]),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.max, children: [
+                Expanded(
+                    child:
+                        Text(this.includePathText(), key: UniqueKey(), textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFC7C7C7), fontSize: 12)))
+              ]),
               padding: EdgeInsets.only(top: 5))
         ],
       ),
@@ -367,10 +323,7 @@ class _RootPageState extends State<RootPage> {
           Row(
               mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(child: this._buildProtoSelectionSection(), flex: 1),
-                Expanded(child: this._buildIncludePathSection(), flex: 1)
-              ]),
+              children: [Expanded(child: this._buildProtoSelectionSection(), flex: 1), Expanded(child: this._buildIncludePathSection(), flex: 1)]),
           Expanded(
               flex: 1,
               child: Container(
@@ -380,20 +333,15 @@ class _RootPageState extends State<RootPage> {
                       final item = this.items[index];
                       return CheckboxListTile(
                         controlAffinity: ListTileControlAffinity.leading,
-                        subtitle: Text(pluginPathText(item),
-                            style: TextStyle(
-                                fontSize: 12, color: Color(0xFFC7C7C7))),
+                        subtitle: Text(pluginPathText(item), style: TextStyle(fontSize: 12, color: Color(0xFFC7C7C7))),
                         title: Row(
                           children: [
                             Text(item.name),
-                            item.needsPlugin
+                            item.needsGrpcPlugin
                                 ? MaterialButton(
                                     color: Color(0xFF508CA4),
-                                    onPressed: () =>
-                                        {this._openPluginPathSelector(item)},
-                                    child: Text("Select plugin path",
-                                        style: TextStyle(
-                                            color: Color(0xFFFCF7FF))),
+                                    onPressed: () => {this._openPluginPathSelector(item)},
+                                    child: Text("Select plugin path", style: TextStyle(color: Color(0xFFFCF7FF))),
                                   )
                                 : Container()
                           ],
@@ -402,8 +350,7 @@ class _RootPageState extends State<RootPage> {
                         value: item.selected,
                         onChanged: (value) {
                           setState(() {
-                            if (this._selectedOutputList.indexOf(item.name) >
-                                -1) {
+                            if (this._selectedOutputList.indexOf(item.name) > -1) {
                               this._selectedOutputList.remove(item.name);
                             } else {
                               this._selectedOutputList.add(item.name);
@@ -421,11 +368,8 @@ class _RootPageState extends State<RootPage> {
                 padding: EdgeInsets.only(bottom: 10),
                 child: RaisedButton(
                   color: Color(0xFF508CA4),
-                  onPressed: this._compileEnabled()
-                      ? () => {this._compile(context)}
-                      : null,
-                  child: Text("Compile GRPC",
-                      style: TextStyle(color: Color(0xFFFCF7FF))),
+                  onPressed: this._compileEnabled() ? () => {this._compileGrpcs(context)} : null,
+                  child: Text("Compile GRPC", style: TextStyle(color: Color(0xFFFCF7FF))),
                 )),
             Container(
                 width: 200,
@@ -433,11 +377,8 @@ class _RootPageState extends State<RootPage> {
                 margin: EdgeInsets.only(left: 30),
                 child: RaisedButton(
                   color: Color(0xFF508CA4),
-                  onPressed: this._compileEnabled()
-                      ? () => {this._compile(context)}
-                      : null,
-                  child: Text("Compile Protobuf",
-                      style: TextStyle(color: Color(0xFFFCF7FF))),
+                  onPressed: this._compileEnabled() ? () => {this._compile(context)} : null,
+                  child: Text("Compile Protobuf", style: TextStyle(color: Color(0xFFFCF7FF))),
                 ))
           ])
         ],

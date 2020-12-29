@@ -1,12 +1,9 @@
 import 'dart:io';
 import 'package:process_run/cmd_run.dart';
 import 'package:process_run/shell.dart';
+import 'constants.dart';
 
-Map<String, String> compilerTypes = {
-  "C++": "--cpp_out",
-  "Go": '--go_out',
-  "Java": '--java_out'
-};
+Map<String, String> compilerTypes = {"C++": "--cpp_out", "Go": '--go_out', "Java": '--java_out'};
 
 Map<String, Map<String, String>> grcpCompilerTypes = {
   "C++": {"plugin": "--plugin=protoc-gen-grpc", "command": "-grpc_out=."},
@@ -14,8 +11,7 @@ Map<String, Map<String, String>> grcpCompilerTypes = {
 };
 
 class ShellService {
-  ShellService(this.type, this.protocPath, this.outputPath, this.includesPath,
-      this.protos, this.pluginPath);
+  ShellService(this.type, this.protocPath, this.outputPath, this.includesPath, this.protos, this.pluginPath);
 
   String type;
   String protocPath;
@@ -27,9 +23,12 @@ class ShellService {
 
   String error;
 
-  Future<ProcessResult> compileCppGrpc() async {
+  Future<ProcessResult> compileGrpcs() async {
     List<String> opts = [];
-    opts.add("-grpc_out=${this.outputPath}");
+    if (type == CPP) {
+      opts.add("--grpc_out=${this.outputPath} --plugin=protoc-gen-grpc=${this.pluginPath}");
+    } else if (type == "Go") {}
+
     if (this.includesPath != null) {
       opts.add("--proto_path=${this.includesPath}");
     }
