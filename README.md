@@ -1,10 +1,10 @@
 # Protobuf compiler
 
+### This app is currently WIP. It compiles protobufs, but does not compile grpcs yet. Working to finish it ASAP
+
 A GUI app for protoc command line tool. It eases a process of compiling `proto` files into selected language. Currently supports following: Dart, Go, C++
 
 ![app.png](https://user-images.githubusercontent.com/1757017/102215894-08bc7980-3ee3-11eb-8807-d4659fd11aa6.png)
-
-
 
 
 
