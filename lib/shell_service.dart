@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:process_run/cmd_run.dart';
 import 'package:process_run/shell.dart';
 import 'constants.dart';
+import 'models/compiler_opts.dart';
+import 'models/proto_compiler_option.dart';
 
 Map<String, String> compilerTypes = {"C++": "--cpp_out", "Go": '--go_out', "Java": '--java_out'};
 
@@ -11,13 +13,14 @@ Map<String, Map<String, String>> grcpCompilerTypes = {
 };
 
 class ShellService {
-  ShellService(this.type, this.protocPath, this.outputPath, this.includesPath, this.protos, this.pluginPath);
+  ShellService(this.lang, this.compiler);
 
-  String type;
-  String protocPath;
-  String outputPath;
-  String includesPath;
-  String pluginPath;
+  CompilerOpts compiler;
+  ProtoCompilerOption lang;
+  // String protocPath;
+  // String outputPath;
+  // String includesPath;
+  // String pluginPath;
 
   List<String> protos;
 
@@ -25,32 +28,33 @@ class ShellService {
 
   Future<ProcessResult> compileGrpcs() async {
     List<String> opts = [];
-    if (type == CPP) {
-      opts.add("--grpc_out=${this.outputPath} --plugin=protoc-gen-grpc=${this.pluginPath}");
-    } else if (type == "Go") {}
+    if (this.lang.name == CPP) {
+      opts.add("--grpc_out=${this.compiler.outputPath}");
+      opts.add("--plugin=protoc-gen-grpc=${this.lang.grpcPath}");
+    } else if (this.lang.name == "Go") {}
 
-    if (this.includesPath != null) {
-      opts.add("--proto_path=${this.includesPath}");
+    if (this.compiler.includePath != null) {
+      opts.add("--proto_path=${this.compiler.includePath}");
     }
-    opts.add("--plugin=${this.pluginPath}");
+    // opts.add("--plugin=${this.lang.grpcPath}");
 
-    opts.add(this.protos.join(' '));
+    opts.add(this.compiler.selectedFiles.join(' '));
     // Run the command
-    ProcessCmd cmd = processCmd("${this.protocPath}", opts, runInShell: false);
-    print(opts);
+    ProcessCmd cmd = processCmd("${this.compiler.protocPath}", opts, runInShell: false);
+    print(cmd.toString());
     return await runCmd(cmd);
   }
 
   Future<ProcessResult> compileProtos() async {
     List<String> opts = [];
-    opts.add("${compilerTypes[this.type]}=${this.outputPath}");
-    if (this.includesPath != null) {
-      opts.add("--proto_path=${this.includesPath}");
+    opts.add("${compilerTypes[this.lang.name]}=${this.compiler.outputPath}");
+    if (this.compiler.includePath != null) {
+      opts.add("--proto_path=${this.compiler.includePath}");
     }
 
-    opts.add(this.protos.join(' '));
+    opts.add(this.compiler.selectedFiles.join(' '));
     // Run the command
-    ProcessCmd cmd = processCmd("${this.protocPath}", opts, runInShell: false);
+    ProcessCmd cmd = processCmd("${this.compiler.protocPath}", opts, runInShell: false);
     return await runCmd(cmd);
   }
 }

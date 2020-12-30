@@ -7,9 +7,12 @@ import 'package:protobuf_compiler/models/proto_compiler_option.dart';
 import 'package:protobuf_compiler/shell_service.dart';
 import 'package:window_size/window_size.dart';
 import 'constants.dart';
+import 'models/compiler_opts.dart';
+
+final CompilerOpts opts = CompilerOpts('', '', [], '');
 
 void main() {
-  var availableOptions = {"Go": "protoc-gen-go", "C++": "grpc_cpp_plugin", "Dart": "protoc-gen-dart"};
+  // var availableOptions = {"Go": "protoc-gen-go", "C++": "grpc_cpp_plugin", "Dart": "protoc-gen-dart"};
   // availableOptions.forEach((name, defaultPath) => items.add(ProtoCompilerOption(name, null, defaultPath, false, needsPlugin: defaultPath != '')));
   WidgetsFlutterBinding.ensureInitialized();
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -60,17 +63,25 @@ class _RootPageState extends State<RootPage> {
   String _protoBinPath;
   String _outputPath;
   String _includePath;
-  List<String> _selectedOutputList = [];
+  // List<String> _selectedOutputList = [];
   List<String> _protosList = [];
 
   void _openBinFileSelector() {
     showOpenPanel(allowsMultipleSelection: false).then((value) => setState(() {
-          _protoBinPath = value.paths.first;
+          opts.protocPath = value.paths.first;
         }));
   }
 
   bool _compileEnabled() {
-    return this._protoBinPath != null && this._outputPath != null && this._protosList != null && _anyOptionSelected();
+    return opts.protocPath != null && opts.outputPath != null && opts.selectedFiles != [] && _anyOptionSelected();
+  }
+
+  bool _grpcCompileEnabled() {
+    return opts.protocPath != null && opts.outputPath!= null && opts.selectedFiles != [] && _grpcOptionSelectedAndValid();
+  }
+
+  bool _grpcOptionSelectedAndValid() {
+    return this.items.where((item) => (item.selected == true) && item.isGrpcValid())?.isNotEmpty;
   }
 
   bool _anyOptionSelected() {
@@ -79,19 +90,19 @@ class _RootPageState extends State<RootPage> {
 
   void _openOutputPathSelector() {
     showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: true).then((value) => setState(() {
-          _outputPath = value.paths.first;
+          opts.outputPath = value.paths.first;
         }));
   }
 
   void _openPluginPathSelector(ProtoCompilerOption item) {
     showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: false).then((value) => setState(() {
-          item.protocPath = value.paths.first;
+          item.grpcPath = value.paths.first;
         }));
   }
 
   void _openIncludePathSelector() {
     showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: true).then((value) => setState(() {
-          _includePath = value.paths.first;
+          opts.includePath = value.paths.first;
         }));
   }
 
@@ -99,7 +110,7 @@ class _RootPageState extends State<RootPage> {
     showOpenPanel(allowsMultipleSelection: true, canSelectDirectories: false, allowedFileTypes: [
       FileTypeFilterGroup(fileExtensions: ["proto"])
     ]).then((value) => setState(() {
-          _protosList = value.paths.map((name) => name).toList();
+          opts.selectedFiles = value.paths.map((name) => name).toList();
         }));
   }
 
@@ -135,21 +146,25 @@ class _RootPageState extends State<RootPage> {
 
   void _compileGrpcs(BuildContext context) {
     Map<String, ProcessResult> compileResult = {};
-    this._selectedOutputList.forEach((lang) {
-      ShellService(lang, this._protoBinPath, this._outputPath, this._includePath, this._protosList, null).compileGrpcs().then((ProcessResult result) => {
-            compileResult[lang] = result,
-            if (this._selectedOutputList.last == lang) {this._showResult(context, compileResult)}
+    this.selectedOutputList().forEach((item) {
+      ShellService(item, opts).compileGrpcs().then((ProcessResult result) => {
+            compileResult[item.name] = result,
+            if (this.selectedOutputList().last == item) {this._showResult(context, compileResult)}
           });
     });
   }
 
+  List<ProtoCompilerOption> selectedOutputList() {
+    return this.items.where((item) => (item.selected == true)).toList();
+  }
+
   void _compile(BuildContext context) {
     Map<String, ProcessResult> compileResult = {};
-    this._selectedOutputList.forEach((lang) {
-      var service = ShellService(lang, this._protoBinPath, this._outputPath, this._includePath, this._protosList, null);
+    this.selectedOutputList().forEach((item) {
+      var service = ShellService(item, opts);
       service.compileProtos().then((ProcessResult result) => {
-            compileResult[lang] = result,
-            if (this._selectedOutputList.last == lang) {this._showResult(context, compileResult)}
+            compileResult[item.name] = result,
+            if (this.selectedOutputList().last == item) {this._showResult(context, compileResult)}
           });
     });
   }
@@ -157,28 +172,27 @@ class _RootPageState extends State<RootPage> {
   String binDescriptionText() {
     if (Platform.isMacOS || Platform.isLinux) {
       String protocPath = whichSync('protoc');
-      print(protocPath);
       if (protocPath != null) {
-        this._protoBinPath = protocPath;
+        opts.protocPath = protocPath;
       }
     }
-    return this._protoBinPath == null ? "Select protoc file executable" : "Binary selected at ${this._protoBinPath}";
+    return opts.protocPath == '' ? "Select protoc file executable" : "Binary selected at ${opts.protocPath}";
   }
 
   String outputPathDescriptionText() {
-    return this._outputPath == null ? "Path not selected" : "Path selected at ${this._outputPath}";
+    return opts.outputPath == '' ? "Path not selected" : "Path selected at ${opts.outputPath}";
   }
 
   String protosPathDescriptionText() {
-    return this._protosList == null ? "Files not selected" : "Selected files: ${this._protosList.join(", ")}";
+    return opts.selectedFiles == [] ? "Files not selected" : "Selected files: ${opts.selectedFiles.join(", ")}";
   }
 
   String includePathText() {
-    return this._includePath == null ? "Path not selected" : "Path selected at ${this._includePath}";
+    return opts.includePath == '' ? "Path not selected" : "Path selected at ${opts.includePath}";
   }
 
   String pluginPathText(ProtoCompilerOption item) {
-    return item.protocPath == null ? "Plugin Path not selected" : "Path selected at ${item.protocPath}";
+    return item.grpcPath == null ? "Plugin Path not selected" : "Path selected at ${item.grpcPath}";
   }
 
   Widget _buildBinarySection() {
@@ -350,11 +364,6 @@ class _RootPageState extends State<RootPage> {
                         value: item.selected,
                         onChanged: (value) {
                           setState(() {
-                            if (this._selectedOutputList.indexOf(item.name) > -1) {
-                              this._selectedOutputList.remove(item.name);
-                            } else {
-                              this._selectedOutputList.add(item.name);
-                            }
                             item.selected = !item.selected;
                           });
                         },
@@ -368,7 +377,7 @@ class _RootPageState extends State<RootPage> {
                 padding: EdgeInsets.only(bottom: 10),
                 child: RaisedButton(
                   color: Color(0xFF508CA4),
-                  onPressed: this._compileEnabled() ? () => {this._compileGrpcs(context)} : null,
+                  onPressed: this._grpcCompileEnabled() ? () => {this._compileGrpcs(context)} : null,
                   child: Text("Compile GRPC", style: TextStyle(color: Color(0xFFFCF7FF))),
                 )),
             Container(

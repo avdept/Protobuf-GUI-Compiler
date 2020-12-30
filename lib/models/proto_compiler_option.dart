@@ -24,17 +24,18 @@ class ProtoCompilerOption {
 
   bool isGrpcValid() {
     bool result = true;
-    result = this.needsProtoPlugin ? this.protocPath.isNotEmpty : true;
-
-    result = this.needsGrpcPlugin ? this.grpcPath.isNotEmpty : true;
+    result = this.needsProtoPlugin ? this.protocPath != null : true;
+    print(this.name);
+    print(this.grpcPath);
+    result = result && (this.needsGrpcPlugin ? this.grpcPath != null : true);
     return result;
   }
 
   bool isProtoValid() {
     bool result = true;
-    result = this.needsProtoPlugin ? this.protocPath.isNotEmpty : true;
+    result = this.needsProtoPlugin ? this.protocPath != null : true;
 
-    result = this.needsGrpcPlugin ? this.grpcPath.isNotEmpty : true;
+    result = result && (this.needsGrpcPlugin ? this.grpcPath != null : true);
     return result;
   }
 }
