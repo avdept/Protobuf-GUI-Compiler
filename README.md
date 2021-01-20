@@ -1,11 +1,9 @@
 # Protobuf compiler
 
-### This app is currently WIP. It compiles protobufs, but does not compile grpcs yet. Working to finish it ASAP
+A GUI app for protoc command line tool. It eases a process of compiling `proto` files into selected language. Currently supports following: Go, C++
+More to be added soon
 
-A GUI app for protoc command line tool. It eases a process of compiling `proto` files into selected language. Currently supports following: Dart, Go, C++
-
-![app.png](https://user-images.githubusercontent.com/1757017/102215894-08bc7980-3ee3-11eb-8807-d4659fd11aa6.png)
-
+![app.png](https://user-images.githubusercontent.com/1757017/105152497-f354f380-5b0f-11eb-8784-5f847750beef.png)
 
 
 ## Getting Started
@@ -15,9 +13,9 @@ A GUI app for protoc command line tool. It eases a process of compiling `proto` 
 By default app will look for executables in current `PATH` env using its default names. However you are free to select your own binaries using file selector in according section.
 
 * `protoc` - Main executable which will do protobuf compilation
-* `protoc-gen-go` - GRPC go plugin executable
+* `protoc-gen-go` -  Go protobuf plugin executable
+* `protoc-gen-go-grpc` -  GRPC go protobuf plugin executable
 * `grpc_cpp_plugin` - GRPC C++ plugin executable
-* `protoc-gen-dart` - GRPC Dart plugin executable
 
 ## Usage
 
