@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:process_run/which.dart';
 import 'package:protobuf_compiler/models/go_compiler_option.dart';
 import 'package:protobuf_compiler/models/proto_compiler_option.dart';
+import 'package:protobuf_compiler/models/ruby_compiler_option.dart';
 import 'package:protobuf_compiler/shell_service.dart';
 import 'package:window_size/window_size.dart';
 import 'constants.dart';
@@ -26,8 +27,9 @@ void main() {
 List<ProtoCompilerOption> buildCompileOptions() {
   final cpp = CppCompilerOption(CPP, '', '', '', 'grpc_cpp_plugin', false, needsProtoPlugin: false, needsGrpcPlugin: true);
   final go = GoCompilerOption(GO, '', '', 'protoc-gen-go', 'protoc-gen-go-grpc', false, needsProtoPlugin: true, needsGrpcPlugin: true);
+  final ruby = RubyCompilerOption(RUBY, '', '', '', 'grpc_tools_ruby_protoc', false, needsGrpcPlugin: true, needsProtoPlugin: false);
 
-  return [cpp, go];
+  return [cpp, go, ruby];
 }
 
 class ProtobufCompilerApp extends StatelessWidget {
@@ -194,7 +196,12 @@ class _RootPageState extends State<RootPage> {
   }
 
   String pluginPathText(ProtoCompilerOption item) {
-    return item.grpcPath == null ? "Plugin Path not selected" : "Path selected at ${item.grpcPath}";
+    return item.grpcPath == '' ? "GRPC Plugin Path not selected" : "Grpc Plugin Path selected at ${item.grpcPath}";
+  }
+
+  String protoPluginPathText(ProtoCompilerOption item) {
+    if (!item.needsProtoPlugin) return '';
+    return item.protocPath == '' ? "Proto Plugin Path not selected" : "Proto Plugin Path selected at ${item.protocPath}";
   }
 
   Widget _buildBinarySection() {
@@ -381,7 +388,10 @@ class _RootPageState extends State<RootPage> {
                       final item = this.items[index];
                       return CheckboxListTile(
                         controlAffinity: ListTileControlAffinity.leading,
-                        subtitle: Text(pluginPathText(item), style: TextStyle(fontSize: 12, color: Color(0xFFC7C7C7))),
+                        subtitle: Column(mainAxisAlignment: MainAxisAlignment.start, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(pluginPathText(item), style: TextStyle(fontSize: 12, color: Color(0xFFC7C7C7))),
+                          Text(protoPluginPathText(item), style: TextStyle(fontSize: 12, color: Color(0xFFC7C7C7)))
+                        ]),
                         title: Row(
                           children: this._buildPluginPathButtons(item),
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
