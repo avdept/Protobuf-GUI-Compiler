@@ -1,6 +1,10 @@
 # Protobuf compiler
 
-A GUI app for protoc command line tool. It eases a process of compiling `proto` files into selected language. Currently supports following: Go, C++
+A GUI app for protoc command line tool. It eases a process of compiling `proto` files into selected language. Currently supports following: 
+* Go
+* C++
+* Ruby
+
 More to be added soon
 
 ![app.png](https://user-images.githubusercontent.com/1757017/105152497-f354f380-5b0f-11eb-8784-5f847750beef.png)
@@ -16,6 +20,7 @@ By default app will look for executables in current `PATH` env using its default
 * `protoc-gen-go` -  Go protobuf plugin executable
 * `protoc-gen-go-grpc` -  GRPC go protobuf plugin executable
 * `grpc_cpp_plugin` - GRPC C++ plugin executable
+* `grpc_ruby_plugin` - GRCP Ruby plugin executable
 
 ## Usage
 
