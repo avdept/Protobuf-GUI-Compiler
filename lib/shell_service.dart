@@ -17,26 +17,17 @@ class ShellService {
 
   CompilerOpts compiler;
   ProtoCompilerOption lang;
-  // String protocPath;
-  // String outputPath;
-  // String includesPath;
-  // String pluginPath;
 
   List<String> protos;
 
   String error;
 
   Future<ProcessResult> compileGrpcs() async {
-    List<String> opts = [];
-    if (this.lang.name == CPP) {
-      opts.add("--grpc_out=${this.compiler.outputPath}");
-      opts.add("--plugin=protoc-gen-grpc=${this.lang.grpcPath}");
-    } else if (this.lang.name == "Go") {}
+    List<String> opts = this.lang.grpcCompilerOpts(compiler);
 
     if (this.compiler.includePath != null) {
       opts.add("--proto_path=${this.compiler.includePath}");
     }
-    // opts.add("--plugin=${this.lang.grpcPath}");
 
     opts.add(this.compiler.selectedFiles.join(' '));
     // Run the command
@@ -46,8 +37,8 @@ class ShellService {
   }
 
   Future<ProcessResult> compileProtos() async {
-    List<String> opts = [];
-    opts.add("${compilerTypes[this.lang.name]}=${this.compiler.outputPath}");
+    List<String> opts = this.lang.protoCompilerOpts(compiler);
+
     if (this.compiler.includePath != null) {
       opts.add("--proto_path=${this.compiler.includePath}");
     }

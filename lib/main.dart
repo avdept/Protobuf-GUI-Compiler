@@ -3,20 +3,20 @@ import 'dart:io';
 import 'package:file_chooser/file_chooser.dart';
 import 'package:flutter/material.dart';
 import 'package:process_run/which.dart';
+import 'package:protobuf_compiler/models/go_compiler_option.dart';
 import 'package:protobuf_compiler/models/proto_compiler_option.dart';
 import 'package:protobuf_compiler/shell_service.dart';
 import 'package:window_size/window_size.dart';
 import 'constants.dart';
 import 'models/compiler_opts.dart';
+import 'models/cpp_compiler_option.dart';
 
 final CompilerOpts opts = CompilerOpts('', '', [], '');
 
 void main() {
-  // var availableOptions = {"Go": "protoc-gen-go", "C++": "grpc_cpp_plugin", "Dart": "protoc-gen-dart"};
-  // availableOptions.forEach((name, defaultPath) => items.add(ProtoCompilerOption(name, null, defaultPath, false, needsPlugin: defaultPath != '')));
   WidgetsFlutterBinding.ensureInitialized();
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    setWindowTitle("Protobuf compiler");
+    setWindowTitle("Protobuf GUI compiler");
     setWindowMinSize(Size(1280, 800));
     setWindowMaxSize(Size(1280, 800));
   }
@@ -24,9 +24,10 @@ void main() {
 }
 
 List<ProtoCompilerOption> buildCompileOptions() {
-  final cpp = ProtoCompilerOption(CPP, null, null, null, 'grpc_cpp_plugin', false, needsProtoPlugin: false, needsGrpcPlugin: true);
+  final cpp = CppCompilerOption(CPP, '', '', '', 'grpc_cpp_plugin', false, needsProtoPlugin: false, needsGrpcPlugin: true);
+  final go = GoCompilerOption(GO, '', '', 'protoc-gen-go', 'protoc-gen-go-grpc', false, needsProtoPlugin: true, needsGrpcPlugin: true);
 
-  return [cpp];
+  return [cpp, go];
 }
 
 class ProtobufCompilerApp extends StatelessWidget {
@@ -36,11 +37,11 @@ class ProtobufCompilerApp extends StatelessWidget {
   ProtobufCompilerApp({Key key, this.items}) : super(key: key);
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Protobuf compiler',
+      title: 'Protobuf GUI compiler',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: RootPage(title: 'Protobuf compiler', items: items),
+      home: RootPage(title: 'Protobuf GUI compiler', items: items),
     );
   }
 }
@@ -60,11 +61,6 @@ class _RootPageState extends State<RootPage> {
   _RootPageState({this.items});
 
   final List<ProtoCompilerOption> items;
-  String _protoBinPath;
-  String _outputPath;
-  String _includePath;
-  // List<String> _selectedOutputList = [];
-  List<String> _protosList = [];
 
   void _openBinFileSelector() {
     showOpenPanel(allowsMultipleSelection: false).then((value) => setState(() {
@@ -77,7 +73,7 @@ class _RootPageState extends State<RootPage> {
   }
 
   bool _grpcCompileEnabled() {
-    return opts.protocPath != null && opts.outputPath!= null && opts.selectedFiles != [] && _grpcOptionSelectedAndValid();
+    return opts.protocPath != null && opts.outputPath != null && opts.selectedFiles != [] && _grpcOptionSelectedAndValid();
   }
 
   bool _grpcOptionSelectedAndValid() {
@@ -94,9 +90,15 @@ class _RootPageState extends State<RootPage> {
         }));
   }
 
-  void _openPluginPathSelector(ProtoCompilerOption item) {
+  void _openGrpcPluginPathSelector(ProtoCompilerOption item) {
     showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: false).then((value) => setState(() {
           item.grpcPath = value.paths.first;
+        }));
+  }
+
+  void _openProtoPluginPathSelector(ProtoCompilerOption item) {
+    showOpenPanel(allowsMultipleSelection: false, canSelectDirectories: false).then((value) => setState(() {
+          item.protocPath = value.paths.first;
         }));
   }
 
@@ -318,6 +320,38 @@ class _RootPageState extends State<RootPage> {
     );
   }
 
+  List<Widget> _buildPluginPathButtons(ProtoCompilerOption item) {
+    List<Widget> items = [Text(item.name)];
+    List<Widget> container = [];
+    if (item.needsGrpcPlugin) {
+      container.add(MaterialButton(
+        color: Color(0xFF508CA4),
+        onPressed: () => {this._openGrpcPluginPathSelector(item)},
+        child: Text("Select GRPC plugin path", style: TextStyle(color: Color(0xFFFCF7FF))),
+      ));
+    }
+
+    if (item.needsProtoPlugin) {
+      container.add(MaterialButton(
+        color: Color(0xFF508CA4),
+        onPressed: () => {this._openProtoPluginPathSelector(item)},
+        child: Text("Select proto plugin path", style: TextStyle(color: Color(0xFFFCF7FF))),
+      ));
+    }
+
+    items.add(Container(
+      child: Expanded(
+        // crossAxisAlignment: CrossAxisAlignment.end,
+        // mainAxisAlignment: MainAxisAlignment.start,
+        child: Row(
+          children: container,
+          mainAxisAlignment: MainAxisAlignment.end,
+        ),
+      ),
+    ));
+    return items;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -349,16 +383,7 @@ class _RootPageState extends State<RootPage> {
                         controlAffinity: ListTileControlAffinity.leading,
                         subtitle: Text(pluginPathText(item), style: TextStyle(fontSize: 12, color: Color(0xFFC7C7C7))),
                         title: Row(
-                          children: [
-                            Text(item.name),
-                            item.needsGrpcPlugin
-                                ? MaterialButton(
-                                    color: Color(0xFF508CA4),
-                                    onPressed: () => {this._openPluginPathSelector(item)},
-                                    child: Text("Select plugin path", style: TextStyle(color: Color(0xFFFCF7FF))),
-                                  )
-                                : Container()
-                          ],
+                          children: this._buildPluginPathButtons(item),
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         ),
                         value: item.selected,
