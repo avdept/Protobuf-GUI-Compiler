@@ -22,3 +22,8 @@ By default app will look for executables in current `PATH` env using its default
 To compile `.proto` file into selected language you need `protoc` binary selected, input files, include path and output path. After selecting all data - hit `Compile protobuf` and app will produce either compiled protobufs into your selected language or throw an error.
 
 Same applies to GRPC, just make sure you've selected binary for desired language.
+
+
+## Current limitations
+* Not possible to select multiple include paths
+* Not possible to save binary file paths as defaults for future usage
